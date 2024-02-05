@@ -60,7 +60,7 @@ export default async function Destination({ params }: { params: { destinationId:
       <Container className="mt-12">
         <div className="prose-lg mx-auto">
           <div className="flex justify-between items-center">
-            <h2>Traveler's Photos</h2>
+            <h2>Traveler&apos;s Photos</h2>
             <CldUploadButton
               className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
               onUpload={onUpload}
