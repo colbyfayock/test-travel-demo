@@ -1,17 +1,39 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { getCldImageUrl } from 'next-cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 
 import Container from '@/components/Container';
 import CldImage from '@/components/CldImage';
 
 import destinations from '@/data/destinations.json';
+import CldUploadButton from '@/components/CldUploadButton';
 
-export default function Destination({ params }: { params: { destinationId: string; }}) {
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export default async function Destination({ params }: { params: { destinationId: string; }}) {
   const destination = destinations.find(({ id }) => id === params.destinationId);
 
   if ( !destination ) {
     redirect('/404');
+  }
+
+  const results = await cloudinary.search.expression(`tags=traveler-photo`).execute();
+  const { resources: travelerPhotos } = results || {};
+  console.log('travelerPhotos', travelerPhotos)
+
+  async function onUpload(formData: FormData) {
+    'use server';
+    
+    console.log('destination', destination);
+    if ( !destination ) return;
+    console.log('`/destinations/${destination.id}`', `/destinations/${destination.id}`)
+    revalidatePath('/destinations/[destinationId]');
+    console.log('formData', formData)
   }
 
   return (
@@ -33,6 +55,43 @@ export default function Destination({ params }: { params: { destinationId: strin
         <div className="prose-lg mx-auto">
           <h2>About { destination.title }</h2>
           <p>{ destination.description }</p>
+        </div>
+      </Container>
+      <Container className="mt-12">
+        <div className="prose-lg mx-auto">
+          <div className="flex justify-between items-center">
+            <h2>Traveler's Photos</h2>
+            <CldUploadButton
+              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+              onUpload={onUpload}
+              uploadPreset="travel-website"
+              signatureEndpoint="/api/sign-cloudinary-params"
+              options={{
+                tags: ['traveler-photo', `destination-${destination.id}`]
+              }}
+            >
+              Add a Photo
+            </CldUploadButton>
+          </div>
+          {Array.isArray(travelerPhotos) && travelerPhotos.length > 0 && (
+            <ul className="grid grid-cols-4">
+              { travelerPhotos.map(photo => {
+                return (
+                  <li key={photo.public_id}>
+                    <CldImage
+                      src={photo.public_id}
+                      width={photo.width}
+                      height={photo.height}
+                      alt=""
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <ul>
+            {}
+          </ul>
         </div>
       </Container>
     </>
