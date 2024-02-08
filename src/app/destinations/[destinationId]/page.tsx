@@ -1,5 +1,6 @@
+import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getCldImageUrl } from 'next-cloudinary';
+import { getCldImageUrl, getCldOgImageUrl } from 'next-cloudinary';
 import { v2 as cloudinary } from 'cloudinary';
 
 import Container from '@/components/Container';
@@ -17,6 +18,56 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+export async function generateMetadata({ params }: { params: { destinationId: string; }}) {
+  const destination = destinations.find(({ id }) => id === params.destinationId);
+
+  if ( !destination ) return {};
+
+  const publicId = destination.image.publicId;
+  const headline = destination.title;
+
+  return {
+    title: '...',
+    openGraph: {
+      images: [
+        {
+          // Prefer a different size? Be sure to update the width and height of the
+          // metadata as well as the image configuration of getCldOgImageUrl
+          width: 1200,
+          height: 627,
+          url: getCldOgImageUrl({
+            src: publicId,
+            effects: [{ colorize: '100,co_black' }],
+            overlays: [
+              {
+                publicId,
+                width: 2400,
+                height: 1254,
+                crop: 'fill',
+                effects: [{
+                  opacity: 60
+                }]
+              },
+              {
+                width: 1400,
+                crop: 'fit',
+                text: {
+                  alignment: 'center',
+                  color: 'white',
+                  fontFamily: 'Source Sans Pro',
+                  fontSize: 210,
+                  fontWeight: 'bold',
+                  text: headline
+                }
+              }
+            ]
+          })
+        }
+      ]
+    }
+  }
+}
+
 export default async function Destination({ params }: { params: { destinationId: string; }}) {
   const destination = destinations.find(({ id }) => id === params.destinationId);
 
@@ -24,9 +75,9 @@ export default async function Destination({ params }: { params: { destinationId:
     redirect('/404');
   }
 
-  const results = await cloudinary.search.expression(`tags=traveler-photo`).with_field('context').execute();
+  const results = await cloudinary.search.expression(`tags=destination-${destination.id}`).with_field('context').execute();
   const { resources: travelerPhotos } = results || {};
-console.log(travelerPhotos)
+
   return (
     <>
       <Container className="relative flex max-w-7xl items-center justify-center aspect-[3/1] bg-black">
